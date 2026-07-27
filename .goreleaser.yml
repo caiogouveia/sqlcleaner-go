@@ -1,0 +1,61 @@
+version: 2
+
+project_name: sqlcleaner
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: sqlcleaner
+    main: ./cmd/sqlcleaner
+    binary: sqlcleaner
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - id: sqlcleaner
+    ids: [sqlcleaner]
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: "checksums.txt"
+
+release:
+  github:
+    owner: caiogouveia
+    name: sqlcleaner-go
+
+homebrew_casks:
+  - name: sqlcleaner-go
+    ids: [sqlcleaner]
+    binaries:
+      - sqlcleaner
+    repository:
+      owner: caiogouveia
+      name: homebrew-sqlcleaner
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Casks
+    homepage: "https://github.com/caiogouveia/sqlcleaner-go"
+    description: "Utilitários para processar dumps SQL do PostgreSQL via streaming"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
