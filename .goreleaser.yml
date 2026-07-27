@@ -52,6 +52,10 @@ homebrew_casks:
     directory: Casks
     homepage: "https://github.com/caiogouveia/sqlcleaner-go"
     description: "Utilitários para processar dumps SQL do PostgreSQL via streaming"
+    hooks:
+      post:
+        install: |
+          system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}"]
 
 changelog:
   sort: asc
