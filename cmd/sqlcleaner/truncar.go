@@ -46,18 +46,27 @@ func runTruncar(w io.Writer, inputPath, outputPath, tablesArg string, defaultLim
 		return nil
 	}
 
+	var header strings.Builder
+	fmt.Fprintln(&header, "--- SQL Table Truncator 1.0 ---")
+	fmt.Fprintf(&header, "Entrada: %s\n", inputPath)
+	fmt.Fprintf(&header, "Saída:   %s\n", outputPath)
+	for _, t := range targets {
+		fmt.Fprintf(&header, "  %s: manter %d registros (%s)\n", t.Key.String(), t.Config.Limit, t.Config.Order)
+	}
+	fmt.Fprintln(&header, "-------------------------------")
+
+	return runTruncarCore(w, inputPath, outputPath, targets, header.String(), "Truncado")
+}
+
+// runTruncarCore é o motor de streaming compartilhado por `truncar` e
+// `esvaziar` (que é apenas um truncar com limite 0 para todas as tabelas).
+func runTruncarCore(w io.Writer, inputPath, outputPath string, targets []sqldump.TruncateTarget, header, resultLabel string) error {
 	if _, err := os.Stat(inputPath); err != nil {
 		fmt.Fprintf(w, "Erro: Arquivo %s não encontrado.\n", inputPath)
 		return nil
 	}
 
-	fmt.Fprintln(w, "--- SQL Table Truncator 1.0 ---")
-	fmt.Fprintf(w, "Entrada: %s\n", inputPath)
-	fmt.Fprintf(w, "Saída:   %s\n", outputPath)
-	for _, t := range targets {
-		fmt.Fprintf(w, "  %s: manter %d registros (%s)\n", t.Key.String(), t.Config.Limit, t.Config.Order)
-	}
-	fmt.Fprintln(w, "-------------------------------")
+	fmt.Fprint(w, header)
 
 	start := time.Now()
 
@@ -191,7 +200,7 @@ func runTruncar(w io.Writer, inputPath, outputPath, tablesArg string, defaultLim
 	fmt.Fprintf(w, "\n✅ Concluído em %.1fs!\n", duration)
 	fmt.Fprintf(w, "Linhas:   %d total / %d removidas\n", totalLines, skippedLines)
 	fmt.Fprintf(w, "Original: %s\n", sqldump.FormatSize(float64(inSize)))
-	fmt.Fprintf(w, "Truncado: %s\n", sqldump.FormatSize(float64(outSize)))
+	fmt.Fprintf(w, "%s: %s\n", resultLabel, sqldump.FormatSize(float64(outSize)))
 	fmt.Fprintf(w, "Economia: %s (%.1f%%)\n", sqldump.FormatSize(float64(saved)), pctSaved)
 
 	return nil
