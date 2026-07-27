@@ -7,8 +7,9 @@ import (
 func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
 		Use:   "sqlcleaner",
-		Short: "Utilitários para processar dumps SQL do PostgreSQL via streaming",
+		Short: "Utilitário para processar dumps SQL do PostgreSQL via streaming",
 	}
+	root.CompletionOptions.DisableDefaultCmd = true
 	root.AddCommand(newAnalisarCmd())
 	root.AddCommand(newRemoverCmd())
 	root.AddCommand(newEsvaziarCmd())
