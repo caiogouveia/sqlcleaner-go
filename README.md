@@ -6,13 +6,26 @@ Port em Go do [`sqlcleaner`](https://github.com/caiogouveia/sqlcleaner) (Python)
 
 Consulte `docs/plano-migracao-go.md` para o histórico de decisões arquiteturais deste port.
 
-## Instalação / build
+## Instalação
+
+### Via Homebrew (macOS/Linux)
+
+```bash
+brew tap caiogouveia/sqlcleaner
+brew install --cask sqlcleaner-go
+```
+
+### Build a partir do código-fonte
 
 ```bash
 go build -o sqlcleaner ./cmd/sqlcleaner
 ```
 
 Requer apenas o toolchain do Go — nenhuma dependência de sistema (o gzip paralelo é feito em Go puro via `pgzip`, sem depender do binário `pigz`).
+
+### Binário pré-compilado
+
+Também dá pra baixar o binário direto da [página de releases](https://github.com/caiogouveia/sqlcleaner-go/releases) (linux/darwin/windows, amd64/arm64), sem precisar do Homebrew nem do toolchain Go.
 
 ## Uso
 
