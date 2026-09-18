@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/caiogouveia/sqlcleaner-go/internal/i18n"
 	"github.com/caiogouveia/sqlcleaner-go/internal/sqldump"
 	"github.com/spf13/cobra"
 )
@@ -15,14 +16,14 @@ func newEsvaziarCmd() *cobra.Command {
 	var tables string
 	cmd := &cobra.Command{
 		Use:   "esvaziar <entrada>",
-		Short: "Remove apenas os dados de tabelas específicas, mantendo a estrutura",
+		Short: i18n.T("esvaziar.short"),
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runEsvaziar(os.Stdout, args[0], output, splitCommaList(tables))
 		},
 	}
-	cmd.Flags().StringVarP(&output, "output", "o", "", "Arquivo SQL de saída")
-	cmd.Flags().StringVarP(&tables, "tables", "t", "", "Lista de tabelas para esvaziar (separadas por vírgula)")
+	cmd.Flags().StringVarP(&output, "output", "o", "", i18n.T("flag.output"))
+	cmd.Flags().StringVarP(&tables, "tables", "t", "", i18n.T("esvaziar.flag.tables"))
 	cmd.MarkFlagRequired("output")
 	cmd.MarkFlagRequired("tables")
 	return cmd
@@ -40,10 +41,10 @@ func runEsvaziar(w io.Writer, inputPath, outputPath string, tableArgs []string) 
 
 	var header strings.Builder
 	fmt.Fprintln(&header, "--- SQL Table Emptier 1.0 ---")
-	fmt.Fprintf(&header, "Entrada: %s\n", inputPath)
-	fmt.Fprintf(&header, "Saída:   %s\n", outputPath)
-	fmt.Fprintf(&header, "Alvos:   %s\n", strings.Join(tableArgs, ", "))
+	fmt.Fprintf(&header, i18n.T("label.entrada"), inputPath)
+	fmt.Fprintf(&header, i18n.T("label.saida"), outputPath)
+	fmt.Fprintf(&header, i18n.T("label.alvos"), strings.Join(tableArgs, ", "))
 	fmt.Fprintln(&header, "-----------------------------")
 
-	return runTruncarCore(w, inputPath, outputPath, targets, header.String(), "Limpo")
+	return runTruncarCore(w, inputPath, outputPath, targets, header.String(), i18n.T("result.label.limpo"))
 }

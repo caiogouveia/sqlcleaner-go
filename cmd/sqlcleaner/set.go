@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/caiogouveia/sqlcleaner-go/internal/i18n"
 	"github.com/caiogouveia/sqlcleaner-go/internal/sqldump"
 	"github.com/spf13/cobra"
 )
@@ -18,15 +19,14 @@ func newSetCmd() *cobra.Command {
 	var params string
 	cmd := &cobra.Command{
 		Use:   "set <entrada>",
-		Short: `Remove linhas 'SET <parametro> = ...;' de um dump SQL`,
+		Short: i18n.T("set.short"),
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runSet(os.Stdout, args[0], output, params)
 		},
 	}
-	cmd.Flags().StringVarP(&output, "output", "o", "", "Arquivo SQL de saída")
-	cmd.Flags().StringVarP(&params, "params", "p", "transaction_timeout",
-		"Parâmetros a remover, separados por vírgula (padrão: transaction_timeout)")
+	cmd.Flags().StringVarP(&output, "output", "o", "", i18n.T("flag.output"))
+	cmd.Flags().StringVarP(&params, "params", "p", "transaction_timeout", i18n.T("set.flag.params"))
 	cmd.MarkFlagRequired("output")
 	return cmd
 }
@@ -41,7 +41,7 @@ func buildSetPatterns(params []string) []*regexp.Regexp {
 
 func runSet(w io.Writer, inputPath, outputPath, paramsArg string) error {
 	if _, err := os.Stat(inputPath); err != nil {
-		fmt.Fprintf(w, "Erro: Arquivo %s não encontrado.\n", inputPath)
+		fmt.Fprintf(w, i18n.T("err.file_not_found"), inputPath)
 		return nil
 	}
 
@@ -58,20 +58,20 @@ func runSet(w io.Writer, inputPath, outputPath, paramsArg string) error {
 
 	reader, err := sqldump.OpenReader(inputPath)
 	if err != nil {
-		fmt.Fprintf(w, "\n❌ Erro: %v\n", err)
+		fmt.Fprintf(w, i18n.T("err.generic"), err)
 		return nil
 	}
 	writer, err := sqldump.OpenWriter(outputPath)
 	if err != nil {
 		reader.Close()
-		fmt.Fprintf(w, "\n❌ Erro: %v\n", err)
+		fmt.Fprintf(w, i18n.T("err.generic"), err)
 		return nil
 	}
 
 	fmt.Fprintln(w, "--- SQL SET Remover 1.0 ---")
-	fmt.Fprintf(w, "Entrada: %s\n", inputPath)
-	fmt.Fprintf(w, "Saída:   %s\n", outputPath)
-	fmt.Fprintf(w, "Parâmetros: %s\n", strings.Join(params, ", "))
+	fmt.Fprintf(w, i18n.T("label.entrada"), inputPath)
+	fmt.Fprintf(w, i18n.T("label.saida"), outputPath)
+	fmt.Fprintf(w, i18n.T("set.label.params"), strings.Join(params, ", "))
 	fmt.Fprintln(w, "---------------------------")
 
 	bw := bufio.NewWriterSize(writer, 1<<20)
@@ -103,15 +103,15 @@ func runSet(w io.Writer, inputPath, outputPath, paramsArg string) error {
 	}
 
 	if err := scanner.Err(); err != nil {
-		fmt.Fprintf(w, "\n❌ Erro: %v\n", err)
+		fmt.Fprintf(w, i18n.T("err.generic"), err)
 		return nil
 	}
 	if err := bw.Flush(); err != nil {
-		fmt.Fprintf(w, "\n❌ Erro: %v\n", err)
+		fmt.Fprintf(w, i18n.T("err.generic"), err)
 		return nil
 	}
 	if err := writer.Close(); err != nil {
-		fmt.Fprintf(w, "\n❌ Erro: %v\n", err)
+		fmt.Fprintf(w, i18n.T("err.generic"), err)
 		return nil
 	}
 	reader.Close()
@@ -121,11 +121,11 @@ func runSet(w io.Writer, inputPath, outputPath, paramsArg string) error {
 	outSize := fileSize(outputPath)
 	saved := inSize - outSize
 
-	fmt.Fprintf(w, "\n✅ Concluído em %.1fs!\n", duration)
-	fmt.Fprintf(w, "Linhas:   %d total / %d removidas\n", count, removed)
-	fmt.Fprintf(w, "Original: %s\n", sqldump.FormatSize(float64(inSize)))
-	fmt.Fprintf(w, "Saída:    %s\n", sqldump.FormatSize(float64(outSize)))
-	fmt.Fprintf(w, "Economia: %s\n", sqldump.FormatSize(float64(saved)))
+	fmt.Fprintf(w, i18n.T("result.done"), duration)
+	fmt.Fprintf(w, i18n.T("result.lines"), count, removed)
+	fmt.Fprintf(w, i18n.T("result.original"), sqldump.FormatSize(float64(inSize)))
+	fmt.Fprintf(w, i18n.T("label.saida"), sqldump.FormatSize(float64(outSize)))
+	fmt.Fprintf(w, i18n.T("result.economia_plain"), sqldump.FormatSize(float64(saved)))
 
 	return nil
 }

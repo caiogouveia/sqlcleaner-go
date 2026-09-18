@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/caiogouveia/sqlcleaner-go/internal/i18n"
 )
 
 // TruncateConfig é o limite e a ordem de corte configurados para uma tabela.
@@ -48,7 +50,7 @@ func ParseTruncateTargets(tablesArg string, defaultLimit *int) ([]TruncateTarget
 			} else {
 				n, err := strconv.Atoi(rest[0])
 				if err != nil {
-					return nil, fmt.Errorf("limite inválido '%s' para tabela '%s'", rest[0], name)
+					return nil, fmt.Errorf(i18n.T("err.truncate.invalid_limit"), rest[0], name)
 				}
 				limit = n
 				hasLimit = true
@@ -56,21 +58,21 @@ func ParseTruncateTargets(tablesArg string, defaultLimit *int) ([]TruncateTarget
 		case 2:
 			n, err := strconv.Atoi(rest[0])
 			if err != nil {
-				return nil, fmt.Errorf("limite inválido '%s' para tabela '%s'", rest[0], name)
+				return nil, fmt.Errorf(i18n.T("err.truncate.invalid_limit"), rest[0], name)
 			}
 			limit = n
 			hasLimit = true
 			if !isOrder(rest[1]) {
-				return nil, fmt.Errorf("ordem inválida '%s' para tabela '%s'. Use ASC ou DESC.", rest[1], name)
+				return nil, fmt.Errorf(i18n.T("err.truncate.invalid_order"), rest[1], name)
 			}
 			order = strings.ToUpper(rest[1])
 		default:
-			return nil, fmt.Errorf("formato inválido para '%s'. Use tabela, tabela:N, tabela:ORDEM ou tabela:N:ORDEM.", entry)
+			return nil, fmt.Errorf(i18n.T("err.truncate.invalid_format"), entry)
 		}
 
 		if !hasLimit {
 			if defaultLimit == nil {
-				return nil, fmt.Errorf("tabela '%s' sem limite e -n não foi informado.", name)
+				return nil, fmt.Errorf(i18n.T("err.truncate.missing_limit"), name)
 			}
 			limit = *defaultLimit
 		}

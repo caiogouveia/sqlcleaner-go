@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/caiogouveia/sqlcleaner-go/internal/i18n"
 	"github.com/caiogouveia/sqlcleaner-go/internal/sqldump"
 	"github.com/spf13/cobra"
 )
@@ -17,14 +18,14 @@ func newRemoverCmd() *cobra.Command {
 	var tables string
 	cmd := &cobra.Command{
 		Use:   "remover <entrada>",
-		Short: "Remove tabelas inteiras (estrutura + dados) de um dump SQL",
+		Short: i18n.T("remover.short"),
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runRemover(os.Stdout, args[0], output, splitCommaList(tables))
 		},
 	}
-	cmd.Flags().StringVarP(&output, "output", "o", "", "Arquivo SQL de saída")
-	cmd.Flags().StringVarP(&tables, "tables", "t", "", "Lista de tabelas para remover (separadas por vírgula)")
+	cmd.Flags().StringVarP(&output, "output", "o", "", i18n.T("flag.output"))
+	cmd.Flags().StringVarP(&tables, "tables", "t", "", i18n.T("remover.flag.tables"))
 	cmd.MarkFlagRequired("output")
 	cmd.MarkFlagRequired("tables")
 	return cmd
@@ -38,7 +39,7 @@ func runRemover(w io.Writer, inputPath, outputPath string, tableArgs []string) e
 	}
 
 	if _, err := os.Stat(inputPath); err != nil {
-		fmt.Fprintf(w, "Erro: Arquivo %s não encontrado.\n", inputPath)
+		fmt.Fprintf(w, i18n.T("err.file_not_found"), inputPath)
 		return nil
 	}
 
@@ -46,20 +47,20 @@ func runRemover(w io.Writer, inputPath, outputPath string, tableArgs []string) e
 
 	reader, err := sqldump.OpenReader(inputPath)
 	if err != nil {
-		fmt.Fprintf(w, "\n❌ Erro: %v\n", err)
+		fmt.Fprintf(w, i18n.T("err.generic"), err)
 		return nil
 	}
 	writer, err := sqldump.OpenWriter(outputPath)
 	if err != nil {
 		reader.Close()
-		fmt.Fprintf(w, "\n❌ Erro: %v\n", err)
+		fmt.Fprintf(w, i18n.T("err.generic"), err)
 		return nil
 	}
 
 	fmt.Fprintln(w, "--- SQL Cleaner 2.0 ---")
-	fmt.Fprintf(w, "Entrada: %s\n", inputPath)
-	fmt.Fprintf(w, "Saída:   %s\n", outputPath)
-	fmt.Fprintf(w, "Alvos:   %s\n", strings.Join(tableArgs, ", "))
+	fmt.Fprintf(w, i18n.T("label.entrada"), inputPath)
+	fmt.Fprintf(w, i18n.T("label.saida"), outputPath)
+	fmt.Fprintf(w, i18n.T("label.alvos"), strings.Join(tableArgs, ", "))
 	fmt.Fprintln(w, "-----------------------")
 
 	bw := bufio.NewWriterSize(writer, 1<<20)
@@ -78,7 +79,7 @@ func runRemover(w io.Writer, inputPath, outputPath string, tableArgs []string) e
 		}
 		count++
 		if count%5000000 == 0 {
-			fmt.Fprintf(w, "Progresso: %dM linhas processadas...\n", count/1000000)
+			fmt.Fprintf(w, i18n.T("progress"), count/1000000)
 		}
 
 		trimmed := strings.TrimSpace(line)
@@ -180,15 +181,15 @@ func runRemover(w io.Writer, inputPath, outputPath string, tableArgs []string) e
 	}
 
 	if err := scanner.Err(); err != nil {
-		fmt.Fprintf(w, "\n❌ Erro: %v\n", err)
+		fmt.Fprintf(w, i18n.T("err.generic"), err)
 		return nil
 	}
 	if err := bw.Flush(); err != nil {
-		fmt.Fprintf(w, "\n❌ Erro: %v\n", err)
+		fmt.Fprintf(w, i18n.T("err.generic"), err)
 		return nil
 	}
 	if err := writer.Close(); err != nil {
-		fmt.Fprintf(w, "\n❌ Erro: %v\n", err)
+		fmt.Fprintf(w, i18n.T("err.generic"), err)
 		return nil
 	}
 	reader.Close()
@@ -200,8 +201,8 @@ func runRemover(w io.Writer, inputPath, outputPath string, tableArgs []string) e
 
 	unmatched := unmatchedNames(targets, matched)
 	if len(unmatched) > 0 {
-		fmt.Fprintf(w, "\n⚠️  Aviso: nenhuma correspondência encontrada no dump para: %s\n", strings.Join(unmatched, ", "))
-		fmt.Fprintln(w, `Verifique nome, schema e uso de aspas (ex.: -t '"Tabela.Com.Ponto"' para nomes com ponto literal).`)
+		fmt.Fprintf(w, i18n.T("warn.no_match"), strings.Join(unmatched, ", "))
+		fmt.Fprintln(w, i18n.T("warn.check_name"))
 	}
 
 	pctSaved := 0.0
@@ -209,11 +210,11 @@ func runRemover(w io.Writer, inputPath, outputPath string, tableArgs []string) e
 		pctSaved = float64(saved) / float64(inSize) * 100
 	}
 
-	fmt.Fprintf(w, "\n✅ Concluído em %.1fs!\n", duration)
-	fmt.Fprintf(w, "Linhas:     %d total / %d removidas\n", count, skippedLines)
-	fmt.Fprintf(w, "Original:   %s\n", sqldump.FormatSize(float64(inSize)))
-	fmt.Fprintf(w, "Limpo:      %s\n", sqldump.FormatSize(float64(outSize)))
-	fmt.Fprintf(w, "Economia:   %s (%.1f%%)\n", sqldump.FormatSize(float64(saved)), pctSaved)
+	fmt.Fprintf(w, i18n.T("result.done"), duration)
+	fmt.Fprintf(w, i18n.T("result.lines"), count, skippedLines)
+	fmt.Fprintf(w, i18n.T("result.original"), sqldump.FormatSize(float64(inSize)))
+	fmt.Fprintf(w, "%s: %s\n", i18n.T("result.label.limpo"), sqldump.FormatSize(float64(outSize)))
+	fmt.Fprintf(w, i18n.T("result.economia_pct"), sqldump.FormatSize(float64(saved)), pctSaved)
 
 	return nil
 }

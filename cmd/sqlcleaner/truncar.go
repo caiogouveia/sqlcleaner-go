@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/caiogouveia/sqlcleaner-go/internal/i18n"
 	"github.com/caiogouveia/sqlcleaner-go/internal/sqldump"
 	"github.com/spf13/cobra"
 )
@@ -18,7 +19,7 @@ func newTruncarCmd() *cobra.Command {
 	var limit int
 	cmd := &cobra.Command{
 		Use:   "truncar <entrada>",
-		Short: "Mantém apenas N registros por tabela",
+		Short: i18n.T("truncar.short"),
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var defaultLimit *int
@@ -28,12 +29,9 @@ func newTruncarCmd() *cobra.Command {
 			return runTruncar(os.Stdout, args[0], output, tables, defaultLimit)
 		},
 	}
-	cmd.Flags().StringVarP(&output, "output", "o", "", "Arquivo SQL de saída")
-	cmd.Flags().StringVarP(&tables, "tables", "t", "",
-		`Tabelas, limites e ordem: "tabela", "tabela:N", "tabela:ORDEM" ou "tabela:N:ORDEM". `+
-			`ORDEM é ASC (padrão, mantém os primeiros N) ou DESC (mantém os últimos N). `+
-			`Ex: log:1000:DESC,cache:500,other:ASC`)
-	cmd.Flags().IntVarP(&limit, "limit", "n", 0, "Limite padrão de registros para tabelas sem limite explícito")
+	cmd.Flags().StringVarP(&output, "output", "o", "", i18n.T("flag.output"))
+	cmd.Flags().StringVarP(&tables, "tables", "t", "", i18n.T("truncar.flag.tables"))
+	cmd.Flags().IntVarP(&limit, "limit", "n", 0, i18n.T("truncar.flag.limit"))
 	cmd.MarkFlagRequired("output")
 	cmd.MarkFlagRequired("tables")
 	return cmd
@@ -42,27 +40,27 @@ func newTruncarCmd() *cobra.Command {
 func runTruncar(w io.Writer, inputPath, outputPath, tablesArg string, defaultLimit *int) error {
 	targets, err := sqldump.ParseTruncateTargets(tablesArg, defaultLimit)
 	if err != nil {
-		fmt.Fprintf(w, "Erro: %v\n", err)
+		fmt.Fprintf(w, i18n.T("err.parse"), err)
 		return nil
 	}
 
 	var header strings.Builder
 	fmt.Fprintln(&header, "--- SQL Table Truncator 1.0 ---")
-	fmt.Fprintf(&header, "Entrada: %s\n", inputPath)
-	fmt.Fprintf(&header, "Saída:   %s\n", outputPath)
+	fmt.Fprintf(&header, i18n.T("label.entrada"), inputPath)
+	fmt.Fprintf(&header, i18n.T("label.saida"), outputPath)
 	for _, t := range targets {
-		fmt.Fprintf(&header, "  %s: manter %d registros (%s)\n", t.Key.String(), t.Config.Limit, t.Config.Order)
+		fmt.Fprintf(&header, i18n.T("truncar.target_header"), t.Key.String(), t.Config.Limit, t.Config.Order)
 	}
 	fmt.Fprintln(&header, "-------------------------------")
 
-	return runTruncarCore(w, inputPath, outputPath, targets, header.String(), "Truncado")
+	return runTruncarCore(w, inputPath, outputPath, targets, header.String(), i18n.T("result.label.truncado"))
 }
 
 // runTruncarCore é o motor de streaming compartilhado por `truncar` e
 // `esvaziar` (que é apenas um truncar com limite 0 para todas as tabelas).
 func runTruncarCore(w io.Writer, inputPath, outputPath string, targets []sqldump.TruncateTarget, header, resultLabel string) error {
 	if _, err := os.Stat(inputPath); err != nil {
-		fmt.Fprintf(w, "Erro: Arquivo %s não encontrado.\n", inputPath)
+		fmt.Fprintf(w, i18n.T("err.file_not_found"), inputPath)
 		return nil
 	}
 
@@ -72,13 +70,13 @@ func runTruncarCore(w io.Writer, inputPath, outputPath string, targets []sqldump
 
 	reader, err := sqldump.OpenReader(inputPath)
 	if err != nil {
-		fmt.Fprintf(w, "\n❌ Erro: %v\n", err)
+		fmt.Fprintf(w, i18n.T("err.generic"), err)
 		return nil
 	}
 	writer, err := sqldump.OpenWriter(outputPath)
 	if err != nil {
 		reader.Close()
-		fmt.Fprintf(w, "\n❌ Erro: %v\n", err)
+		fmt.Fprintf(w, i18n.T("err.generic"), err)
 		return nil
 	}
 
@@ -101,7 +99,7 @@ func runTruncarCore(w io.Writer, inputPath, outputPath string, targets []sqldump
 		}
 		totalLines++
 		if totalLines%5000000 == 0 {
-			fmt.Fprintf(w, "Progresso: %dM linhas processadas...\n", totalLines/1000000)
+			fmt.Fprintf(w, i18n.T("progress"), totalLines/1000000)
 		}
 
 		trimmed := strings.TrimSpace(line)
@@ -163,15 +161,15 @@ func runTruncarCore(w io.Writer, inputPath, outputPath string, targets []sqldump
 	}
 
 	if err := scanner.Err(); err != nil {
-		fmt.Fprintf(w, "\n❌ Erro: %v\n", err)
+		fmt.Fprintf(w, i18n.T("err.generic"), err)
 		return nil
 	}
 	if err := bw.Flush(); err != nil {
-		fmt.Fprintf(w, "\n❌ Erro: %v\n", err)
+		fmt.Fprintf(w, i18n.T("err.generic"), err)
 		return nil
 	}
 	if err := writer.Close(); err != nil {
-		fmt.Fprintf(w, "\n❌ Erro: %v\n", err)
+		fmt.Fprintf(w, i18n.T("err.generic"), err)
 		return nil
 	}
 	reader.Close()
@@ -188,8 +186,8 @@ func runTruncarCore(w io.Writer, inputPath, outputPath string, targets []sqldump
 		}
 	}
 	if len(unmatchedNames) > 0 {
-		fmt.Fprintf(w, "\n⚠️  Aviso: nenhuma correspondência encontrada no dump para: %s\n", strings.Join(unmatchedNames, ", "))
-		fmt.Fprintln(w, `Verifique nome, schema e uso de aspas (ex.: -t '"Tabela.Com.Ponto"' para nomes com ponto literal).`)
+		fmt.Fprintf(w, i18n.T("warn.no_match"), strings.Join(unmatchedNames, ", "))
+		fmt.Fprintln(w, i18n.T("warn.check_name"))
 	}
 
 	pctSaved := 0.0
@@ -197,11 +195,11 @@ func runTruncarCore(w io.Writer, inputPath, outputPath string, targets []sqldump
 		pctSaved = float64(saved) / float64(inSize) * 100
 	}
 
-	fmt.Fprintf(w, "\n✅ Concluído em %.1fs!\n", duration)
-	fmt.Fprintf(w, "Linhas:   %d total / %d removidas\n", totalLines, skippedLines)
-	fmt.Fprintf(w, "Original: %s\n", sqldump.FormatSize(float64(inSize)))
+	fmt.Fprintf(w, i18n.T("result.done"), duration)
+	fmt.Fprintf(w, i18n.T("result.lines"), totalLines, skippedLines)
+	fmt.Fprintf(w, i18n.T("result.original"), sqldump.FormatSize(float64(inSize)))
 	fmt.Fprintf(w, "%s: %s\n", resultLabel, sqldump.FormatSize(float64(outSize)))
-	fmt.Fprintf(w, "Economia: %s (%.1f%%)\n", sqldump.FormatSize(float64(saved)), pctSaved)
+	fmt.Fprintf(w, i18n.T("result.economia_pct"), sqldump.FormatSize(float64(saved)), pctSaved)
 
 	return nil
 }

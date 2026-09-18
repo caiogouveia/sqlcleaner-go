@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/caiogouveia/sqlcleaner-go/internal/i18n"
 	"github.com/caiogouveia/sqlcleaner-go/internal/sqldump"
 	"github.com/spf13/cobra"
 )
@@ -16,19 +17,19 @@ func newAnalisarCmd() *cobra.Command {
 	var top int
 	cmd := &cobra.Command{
 		Use:   "analisar <entrada>",
-		Short: "Lista tabelas de um dump SQL ordenadas por tamanho",
+		Short: i18n.T("analisar.short"),
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runAnalisar(os.Stdout, args[0], top)
 		},
 	}
-	cmd.Flags().IntVarP(&top, "top", "n", 0, "Exibir apenas as N maiores tabelas (padrão: todas)")
+	cmd.Flags().IntVarP(&top, "top", "n", 0, i18n.T("analisar.flag.top"))
 	return cmd
 }
 
 func runAnalisar(w io.Writer, inputPath string, top int) error {
 	if _, err := os.Stat(inputPath); err != nil {
-		fmt.Fprintf(w, "Erro: Arquivo %s não encontrado.\n", inputPath)
+		fmt.Fprintf(w, i18n.T("err.file_not_found"), inputPath)
 		return nil
 	}
 
@@ -36,13 +37,13 @@ func runAnalisar(w io.Writer, inputPath string, top int) error {
 
 	reader, err := sqldump.OpenReader(inputPath)
 	if err != nil {
-		fmt.Fprintf(w, "\n❌ Erro: %v\n", err)
+		fmt.Fprintf(w, i18n.T("err.generic"), err)
 		return nil
 	}
 	defer reader.Close()
 
 	fmt.Fprintln(w, "--- SQL Table Analyzer 1.0 ---")
-	fmt.Fprintf(w, "Entrada: %s\n", inputPath)
+	fmt.Fprintf(w, i18n.T("label.entrada"), inputPath)
 	fmt.Fprintln(w, "------------------------------")
 
 	scanner := sqldump.NewLineScanner(reader)
@@ -64,7 +65,7 @@ func runAnalisar(w io.Writer, inputPath string, top int) error {
 		}
 		count++
 		if count%5000000 == 0 {
-			fmt.Fprintf(w, "Progresso: %dM linhas processadas...\n", count/1000000)
+			fmt.Fprintf(w, i18n.T("progress"), count/1000000)
 		}
 
 		if inCopy {
@@ -97,7 +98,7 @@ func runAnalisar(w io.Writer, inputPath string, top int) error {
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		fmt.Fprintf(w, "\n❌ Erro: %v\n", err)
+		fmt.Fprintf(w, i18n.T("err.generic"), err)
 		return nil
 	}
 
@@ -125,7 +126,7 @@ func runAnalisar(w io.Writer, inputPath string, top int) error {
 		totalRows += r
 	}
 
-	fmt.Fprintf(w, "\n%-50s %10s  %12s  %6s\n", "Tabela", "Tamanho", "Registros", "%")
+	fmt.Fprintf(w, "\n%-50s %10s  %12s  %6s\n", i18n.T("analisar.header.tabela"), i18n.T("analisar.header.tamanho"), i18n.T("analisar.header.registros"), "%")
 	fmt.Fprintln(w, strings.Repeat("-", 84))
 	for _, r := range rows {
 		pct := 0.0
@@ -136,7 +137,7 @@ func runAnalisar(w io.Writer, inputPath string, top int) error {
 	}
 	fmt.Fprintln(w, strings.Repeat("-", 84))
 	fmt.Fprintf(w, "%-50s %10s  %12s\n", "TOTAL", sqldump.FormatSize(float64(total)), formatThousands(totalRows))
-	fmt.Fprintf(w, "\n%d tabelas analisadas em %.1fs (%d linhas)\n", len(tableSizes), duration, count)
+	fmt.Fprintf(w, i18n.T("analisar.summary"), len(tableSizes), duration, count)
 
 	return nil
 }
