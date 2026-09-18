@@ -1,5 +1,7 @@
 # sqlcleaner-go
 
+*[Read in English](README.en.md)*
+
 Port em Go do [`sqlcleaner`](https://github.com/caiogouveia/sqlcleaner) (Python): utilitários para processar dumps SQL do PostgreSQL via streaming, sem carregar o arquivo inteiro na memória — visando um binário único, estático, sem exigir Python nem `pigz` instalados no destino. `analisar`/`remover`/`esvaziar`/`truncar`/`set` operam 100% localmente, sem nunca abrir conexão com um banco; a exceção é `restaurar`, que aplica o dump (já limpo pelos outros comandos, se for o caso) diretamente num servidor PostgreSQL via driver nativo (`pgx`), também sem depender de `psql`/`pg_restore` instalados.
 
 **AVISO:** Este é um software experimental. Desenvolvido principalmente com IA. Use por sua conta e risco.
